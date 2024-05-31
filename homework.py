@@ -63,7 +63,7 @@ def check_tokens():
     return True
 
 
-def send_message(bot: TeleBot, message: str) -> None:
+def send_message(bot, message):
     """Отправляет сообщение пользователю."""
     try:
         bot.send_message(
@@ -76,7 +76,7 @@ def send_message(bot: TeleBot, message: str) -> None:
         logger.error(f'Сообщение не отправлено, причина: {error}')
 
 
-def get_api_answer(timestamp: int) -> dict | None:
+def get_api_answer(timestamp):
     """Запрашивает статусы домашних работ с эндпоинта ЯндексПрактикума."""
     try:
         homework_status = requests.get(
@@ -100,7 +100,7 @@ def get_api_answer(timestamp: int) -> dict | None:
     return None
 
 
-def check_response(response: dict) -> dict:
+def check_response(response):
     """Проверка ожидаемых ключей в ответе API."""
     try:
         homeworks = response['homeworks']
@@ -114,7 +114,7 @@ def check_response(response: dict) -> dict:
         raise KeyError("Отсутствует ключ 'homeworks' в ответе API")
 
 
-def parse_status(homework: dict | None) -> str:
+def parse_status(homework):
     """Подготавливает сообщение для отправки ботом."""
     if 'lesson_name' not in homework:
         logger.debug('Ключ "lesson_name" отсутствует в ответе API')
