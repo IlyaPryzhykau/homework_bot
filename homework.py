@@ -4,6 +4,7 @@ import sys
 import time
 
 from http import HTTPStatus
+from json.decoder import JSONDecodeError
 from dotenv import load_dotenv
 import requests
 from telebot import TeleBot
@@ -16,7 +17,6 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 RETRY_PERIOD = 600
-TWO_DAYS = 172000
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -84,56 +84,59 @@ def get_api_answer(timestamp):
             headers=HEADERS,
             params={'from_date': timestamp}
         )
-        if homework_status.status_code == HTTPStatus.OK:
-            return homework_status.json()
-        else:
-            raise AssertionError(
-                logger.error(f"Ошибка при получении данных:"
-                             f" {homework_status.status_code}"))
 
     except requests.exceptions.ConnectionError as error:
-        logger.error(f"Недоступен эндпоинт: {error}")
+        raise AssertionError(f"Недоступен эндпоинт: {error}")
 
     except requests.exceptions.RequestException as error:
-        logger.error(f"Сбой при запросе к эндпоинту: {error}")
+        raise AssertionError(f"Сбой при запросе к эндпоинту: {error}")
 
-    return None
+    if homework_status.status_code == HTTPStatus.OK:
+        try:
+            return homework_status.json()
+        except JSONDecodeError:
+            raise ValueError(f'Ошибка при преобразовании ответа в JSON')
+    else:
+        raise AssertionError(f"Ошибка при получении данных:"
+                             f" {homework_status.status_code}")
 
 
 def check_response(response):
     """Проверка ожидаемых ключей в ответе API."""
-    try:
-        homeworks = response['homeworks']
-        if isinstance(homeworks, list):
-            if len(homeworks) == 0:
-                return None
-            return homeworks[0]
-        else:
-            logger.error("Неправильный тип значения для ключа 'homeworks'")
-            raise TypeError("Неправильный тип значения для ключа 'homeworks'")
-    except KeyError:
-        logger.error("Отсутствует ключ 'homeworks' в ответе API")
+    if not isinstance(response, dict):
+        raise TypeError("ответ API должен быть словарем'")
+
+    if 'homeworks'not in response:
         raise KeyError("Отсутствует ключ 'homeworks' в ответе API")
+    homeworks = response.get('homeworks')
+
+    if not isinstance(homeworks, list):
+        raise TypeError("Неправильный тип значения для ключа 'homeworks'")
+
+    if len(homeworks) != 0:
+        return homeworks[0]
 
 
 def parse_status(homework):
     """Подготавливает сообщение для отправки ботом."""
-    if homework is not None:
-        if 'lesson_name' not in homework:
-            logger.debug('Ключ "lesson_name" отсутствует в ответе API')
-            raise KeyError('Ключ "lesson_name" отсутствует в ответе API')
-
-        homework_name = homework['homework_name']
-        response_status = homework['status']
-
-        if response_status in HOMEWORK_VERDICTS:
-            verdict = HOMEWORK_VERDICTS[response_status]
-            return (f'Изменился статус проверки работы'
-                    f' "{homework_name}". {verdict}')
-
-        logger.error(f'Неожиданный статус домашней работы: {response_status}')
-    else:
+    if not isinstance(homework, dict):
         logger.debug('Нет данных о статусе домашней работы.')
+        return
+
+    if 'homework_name' not in homework:
+        raise KeyError('Ключ "homework_name" отсутствует в ответе API')
+
+    homework_name = homework.get('homework_name')
+    response_status = homework.get('status')
+
+    if response_status in HOMEWORK_VERDICTS:
+        verdict = HOMEWORK_VERDICTS[response_status]
+        return (f'Изменился статус проверки работы '
+                f'"{homework_name}". {verdict}')
+    else:
+        raise AssertionError(
+            f'Неожиданный статус домашней работы: {response_status}'
+        )
 
 
 def main():
@@ -143,21 +146,26 @@ def main():
 
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time()) - TWO_DAYS  # Проверяем за последние 2-е суток
-    error_message_sent = False
+    timestamp = int(time.time())
+    error_messages = []
 
     while True:
+        response = get_api_answer(timestamp)
+        homeworks = check_response(response)
+        message = parse_status(homeworks)
+
+        timestamp = response.get('current_date')
+
         try:
-            response = get_api_answer(timestamp)
-            homeworks = check_response(response)
-            message = parse_status(homeworks)
             if message:
                 send_message(bot, message)
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            if not error_message_sent:
+            message = f'{error}'
+
+            logger.error(message)
+            if not message not in error_messages:
                 send_message(bot, message)
-                error_message_sent = True
+                error_messages.append(message)
 
         time.sleep(RETRY_PERIOD)
 
