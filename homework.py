@@ -116,17 +116,10 @@ def check_response(response: dict) -> dict:
 
 def parse_status(homework: dict | None) -> str:
     """Подготавливает сообщение для отправки ботом."""
-    if not homework:
-        logger.debug('Отсутствуют данные о домашней работе')
-        raise AssertionError('Отсутствуют данные о домашней работе')
 
     if 'lesson_name' not in homework:
         logger.debug('Ключ "lesson_name" отсутствует в ответе API')
         raise KeyError('Ключ "lesson_name" отсутствует в ответе API')
-
-    if 'status' not in homework:
-        logger.debug('Ключ "status" отсутствует в ответе API')
-        raise KeyError('Ключ "status" отсутствует в ответе API')
 
     homework_name = homework['homework_name']
     response_status = homework['status']
