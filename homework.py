@@ -105,6 +105,8 @@ def check_response(response):
     try:
         homeworks = response['homeworks']
         if isinstance(homeworks, list):
+            if len(homeworks) == 0:
+                return None
             return homeworks[0]
         else:
             logger.error("Неправильный тип значения для ключа 'homeworks'")
@@ -116,18 +118,21 @@ def check_response(response):
 
 def parse_status(homework):
     """Подготавливает сообщение для отправки ботом."""
-    if 'lesson_name' not in homework:
-        logger.debug('Ключ "lesson_name" отсутствует в ответе API')
-        raise KeyError('Ключ "lesson_name" отсутствует в ответе API')
+    if homework is not None:
+        if 'lesson_name' not in homework:
+            logger.debug('Ключ "lesson_name" отсутствует в ответе API')
+            raise KeyError('Ключ "lesson_name" отсутствует в ответе API')
 
-    homework_name = homework['homework_name']
-    response_status = homework['status']
+        homework_name = homework['homework_name']
+        response_status = homework['status']
 
-    if response_status in HOMEWORK_VERDICTS:
-        verdict = HOMEWORK_VERDICTS[response_status]
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+        if response_status in HOMEWORK_VERDICTS:
+            verdict = HOMEWORK_VERDICTS[response_status]
+            return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
-    raise ValueError(f'Неожиданный статус домашней работы: {response_status}')
+        logger.error(f'Неожиданный статус домашней работы: {response_status}')
+    else:
+        logger.debug('Нет данных о статусе домашней работы.')
 
 
 def main():
