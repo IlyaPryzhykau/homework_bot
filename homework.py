@@ -64,7 +64,7 @@ def check_tokens():
 
 
 def send_message(bot: TeleBot, message: str) -> None:
-    """Отправляет сообщение пользователю"""
+    """Отправляет сообщение пользователю."""
     try:
         bot.send_message(
             chat_id=TELEGRAM_CHAT_ID,
