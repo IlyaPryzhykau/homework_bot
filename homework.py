@@ -100,33 +100,42 @@ def get_api_answer(timestamp: int) -> dict | None:
     return None
 
 
-def check_response(response: dict) -> bool:
-    """Проверка ожидаемых ключей в ответе API"""
+def check_response(response: dict) -> dict:
+    """Проверка ожидаемых ключей в ответе API."""
     try:
         homeworks = response['homeworks']
         if isinstance(homeworks, list):
-            return True
+            return homeworks[0]
         else:
+            logger.error("Неправильный тип значения для ключа 'homeworks'")
             raise TypeError("Неправильный тип значения для ключа 'homeworks'")
     except KeyError:
+        logger.error("Отсутствует ключ 'homeworks' в ответе API")
         raise KeyError("Отсутствует ключ 'homeworks' в ответе API")
 
 
-def parse_status(homework: dict) -> str | bool:
-    """Подготавливает сообщение для отправки ботом"""
-    try:
-        response = homework.get('homeworks')[0]
-        homework_name = response['lesson_name']
+def parse_status(homework: dict | None) -> str:
+    """Подготавливает сообщение для отправки ботом."""
+    if not homework:
+        logger.debug('Отсутствуют данные о домашней работе')
+        raise AssertionError('Отсутствуют данные о домашней работе')
 
-        if response['status'] in HOMEWORK_VERDICTS:
-            verdict = HOMEWORK_VERDICTS[response['status']]
-            return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    if 'lesson_name' not in homework:
+        logger.debug('Ключ "lesson_name" отсутствует в ответе API')
+        raise KeyError('Ключ "lesson_name" отсутствует в ответе API')
 
-        logger.error(f'Неожиданный статус домашней работы: {response["status"]}')
-        return False
+    if 'status' not in homework:
+        logger.debug('Ключ "status" отсутствует в ответе API')
+        raise KeyError('Ключ "status" отсутствует в ответе API')
 
-    except IndexError:
-        logger.debug(f'Работа ожидает проверку')
+    homework_name = homework['homework_name']
+    response_status = homework['status']
+
+    if response_status in HOMEWORK_VERDICTS:
+        verdict = HOMEWORK_VERDICTS[response_status]
+        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+
+    raise ValueError(f'Неожиданный статус домашней работы: {response_status}')
 
 
 def main():
@@ -142,10 +151,10 @@ def main():
     while True:
         try:
             response = get_api_answer(timestamp)
-            if check_response(response):
-                message = parse_status(response)
-                if message:
-                    send_message(bot, message)
+            homeworks = check_response(response)
+            message = parse_status(homeworks)
+            if message:
+                send_message(bot, message)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             if not error_message_sent:
