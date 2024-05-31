@@ -128,7 +128,8 @@ def parse_status(homework):
 
         if response_status in HOMEWORK_VERDICTS:
             verdict = HOMEWORK_VERDICTS[response_status]
-            return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+            return (f'Изменился статус проверки работы'
+                    f' "{homework_name}". {verdict}')
 
         logger.error(f'Неожиданный статус домашней работы: {response_status}')
     else:
