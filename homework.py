@@ -11,9 +11,9 @@ from telebot import TeleBot
 load_dotenv()
 
 
-PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+PRACTICUM_TOKEN = os.getenv('practicum_token')
+TELEGRAM_TOKEN = os.getenv('telegram_token')
+TELEGRAM_CHAT_ID = os.getenv('telegram_chat_id')
 
 RETRY_PERIOD = 600
 TWO_DAYS = 172000
