@@ -161,7 +161,6 @@ def main():
                 send_message(bot, message)
         except Exception as error:
             message = f'{error}'
-
             logger.error(message)
             if not message not in error_messages:
                 send_message(bot, message)
