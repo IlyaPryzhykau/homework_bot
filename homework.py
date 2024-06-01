@@ -166,7 +166,9 @@ def main():
                 error_messages.append(message)
                 logger.info(f'Сообщение об ошибке отправлено: {message}')
             else:
-                logger.debug(f'Сообщение об ошибке уже отправлено ранее: {message}')
+                logger.debug(
+                    f'Сообщение об ошибке уже отправлено ранее: {message}'
+                )
 
         time.sleep(RETRY_PERIOD)
 
