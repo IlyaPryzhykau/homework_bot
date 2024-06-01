@@ -95,7 +95,7 @@ def get_api_answer(timestamp):
         try:
             return homework_status.json()
         except JSONDecodeError:
-            raise ValueError(f'Ошибка при преобразовании ответа в JSON')
+            raise ValueError('Ошибка при преобразовании ответа в JSON')
     else:
         raise AssertionError(f"Ошибка при получении данных:"
                              f" {homework_status.status_code}")
