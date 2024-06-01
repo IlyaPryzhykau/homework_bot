@@ -16,6 +16,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
+TWO_DAYS = 172800
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
@@ -96,9 +97,9 @@ def get_api_answer(timestamp):
             return homework_status.json()
         except JSONDecodeError:
             raise ValueError('Ошибка при преобразовании ответа в JSON')
-    else:
-        raise AssertionError(f"Ошибка при получении данных:"
-                             f" {homework_status.status_code}")
+
+    raise AssertionError(f"Ошибка при получении данных:"
+                         f" {homework_status.status_code}")
 
 
 def check_response(response):
@@ -113,16 +114,11 @@ def check_response(response):
     if not isinstance(homeworks, list):
         raise TypeError("Неправильный тип значения для ключа 'homeworks'")
 
-    if len(homeworks) != 0:
-        return homeworks[0]
+    return homeworks
 
 
 def parse_status(homework):
     """Подготавливает сообщение для отправки ботом."""
-    if not isinstance(homework, dict):
-        logger.debug('Нет данных о статусе домашней работы.')
-        return
-
     if 'homework_name' not in homework:
         raise KeyError('Ключ "homework_name" отсутствует в ответе API')
 
@@ -133,10 +129,10 @@ def parse_status(homework):
         verdict = HOMEWORK_VERDICTS[response_status]
         return (f'Изменился статус проверки работы '
                 f'"{homework_name}". {verdict}')
-    else:
-        raise AssertionError(
-            f'Неожиданный статус домашней работы: {response_status}'
-        )
+
+    raise AssertionError(
+        f'Неожиданный статус домашней работы: {response_status}'
+    )
 
 
 def main():
@@ -146,26 +142,33 @@ def main():
 
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time())
+    timestamp = int(time.time()) - TWO_DAYS
     error_messages = []
 
     while True:
-        response = get_api_answer(timestamp)
-        homeworks = check_response(response)
-        message = parse_status(homeworks)
-
-        timestamp = response.get('current_date')
-
         try:
-            if message:
+            response = get_api_answer(timestamp)
+            homeworks = check_response(response)
+            timestamp = response.get('current_date', timestamp)
+
+            if len(homeworks) != 0:
+                message = parse_status(homeworks[0])
                 send_message(bot, message)
+            else:
+                logger.debug('Нет данных о статусе домашней работы.')
+
         except Exception as error:
-            message = f'{error}'
+            message = str(error)
             logger.error(message)
-            if not message not in error_messages:
+
+            if message not in error_messages:
                 send_message(bot, message)
                 error_messages.append(message)
+                logger.info(f'Сообщение об ошибке отправлено: {message}')
+            else:
+                logger.debug(f'Сообщение об ошибке уже отправлено ранее: {message}')
 
+        timestamp = response.get('current_date', timestamp)
         time.sleep(RETRY_PERIOD)
 
 
