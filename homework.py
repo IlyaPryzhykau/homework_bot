@@ -111,7 +111,7 @@ def check_response(response):
         raise KeyError("Отсутствует ключ 'homeworks' в ответе API")
     homeworks = response.get('homeworks')
 
-    if not isinstance(homeworks, list):
+    if not isinstance(homeworks, dict):
         raise TypeError("Неправильный тип значения для ключа 'homeworks'")
 
     return homeworks
@@ -158,7 +158,7 @@ def main():
                 logger.debug('Нет данных о статусе домашней работы.')
 
         except Exception as error:
-            message = str(error)
+            message = error
             logger.error(message)
 
             if message not in error_messages:
@@ -166,7 +166,9 @@ def main():
                 error_messages.append(message)
                 logger.info(f'Сообщение об ошибке отправлено: {message}')
             else:
-                logger.debug(f'Сообщение об ошибке уже отправлено ранее: {message}')
+                logger.debug(
+                    f'Сообщение об ошибке уже отправлено ранее: {message}'
+                )
 
         time.sleep(RETRY_PERIOD)
 
