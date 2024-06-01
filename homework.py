@@ -16,7 +16,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-TWO_DAYS = 172800
+TWO_WEEKS = 1209600
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
@@ -142,7 +142,7 @@ def main():
 
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
-    timestamp = int(time.time()) - TWO_DAYS
+    timestamp = int(time.time()) - TWO_WEEKS
     error_messages = []
 
     while True:
@@ -168,7 +168,6 @@ def main():
             else:
                 logger.debug(f'Сообщение об ошибке уже отправлено ранее: {message}')
 
-        timestamp = response.get('current_date', timestamp)
         time.sleep(RETRY_PERIOD)
 
 
