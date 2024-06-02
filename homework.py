@@ -143,27 +143,28 @@ def main():
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time()) - TWO_WEEKS
-    error_messages = []
+    last_error_message = ''
 
     while True:
         try:
             response = get_api_answer(timestamp)
             homeworks = check_response(response)
-            timestamp = response.get('current_date', timestamp)
 
-            if len(homeworks) != 0:
+            if homeworks:
                 message = parse_status(homeworks[0])
                 send_message(bot, message)
             else:
                 logger.debug('Нет данных о статусе домашней работы.')
 
+            timestamp = response.get('current_date', timestamp)
+
         except Exception as error:
             message = error
             logger.error(message)
 
-            if message not in error_messages:
+            if message != last_error_message:
                 send_message(bot, message)
-                error_messages.append(message)
+                last_error_message = message
                 logger.info(f'Сообщение об ошибке отправлено: {message}')
             else:
                 logger.debug(
