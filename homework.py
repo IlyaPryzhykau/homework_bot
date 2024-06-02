@@ -143,7 +143,7 @@ def main():
     # Создаем объект класса бота
     bot = TeleBot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time()) - TWO_WEEKS
-    last_error_message = ''
+    last_error_message = ""
 
     while True:
         try:
